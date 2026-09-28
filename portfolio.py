@@ -2,19 +2,14 @@
 import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
+from normalisation_data import load_data, deduplicate, clean_universe, parse_number, parse_bool, _clean_text, prepare_data, chemin_fichier
 
 #%%
 
 ## IMPORT DES DONNEES 
 
-def load_data():
-    chemin_fichier = "Data/Providence_TD_raw_data.xlsx"
-    # Remplacer la lecture du CSV par la lecture du fichier Excel brut
-    df = pd.read_excel(chemin_fichier, sheet_name="Univers brut")
-    return df
 
-
-df = load_data()
+df, removed, controversies = prepare_data(chemin_fichier)
 print(df.head())
 
 
