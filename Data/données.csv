@@ -1,0 +1,126 @@
+id,name,ticker_yahoo,isin,asset_type,sector,country,currency,pea_eligible,pea_pme_eligible,data_source,include_in_universe,max_weight
+1,Air Liquide,AI.PA,FR0000120073,STOCK,Materials,France,EUR,True,False,YAHOO,True,0.2
+2,LVMH,MC.PA,FR0000121014,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+3,TotalEnergies,TTE.PA,FR0000120271,STOCK,Energy,France,EUR,True,False,YAHOO,True,0.2
+4,ASML Holding,ASML.AS,NL0010273215,STOCK,Information Technology,Pays-Bas,EUR,True,False,YAHOO,True,0.2
+5,Siemens,SIE.DE,DE0007236101,STOCK,Industrials,Allemagne,EUR,True,False,YAHOO,True,0.2
+6,BNP Paribas,BNP.PA,FR0000131104,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+7,SAP SE,SAP.DE,DE0007164600,STOCK,Information Technology,Allemagne,EUR,True,False,YAHOO,True,0.2
+8,Allianz SE,ALV.DE,DE0008404005,STOCK,Financials,Allemagne,EUR,True,False,YAHOO,True,0.2
+9,Airbus SE,AIR.PA,NL0000235190,STOCK,Industrials,Pays-Bas,EUR,True,False,YAHOO,True,0.2
+10,Hermès International,RMS.PA,FR0000052292,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+11,L’Oréal,OR.PA,FR0000120321,STOCK,Consumer Staples,France,EUR,True,False,YAHOO,True,0.2
+12,Engie,ENGI.PA,FR0010208488,STOCK,Utilities,France,EUR,True,False,YAHOO,True,0.2
+13,Schneider Electric,SU.PA,FR0000121972,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+14,Sanofi,SAN.PA,FR0000120578,STOCK,Health Care,France,EUR,True,False,YAHOO,True,0.2
+15,EssilorLuxottica,EL.PA,FR0000121667,STOCK,Health Care,France,EUR,True,False,YAHOO,True,0.2
+16,Safran,SAF.PA,FR0000073272,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+18,AXA,CS.PA,FR0000120628,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+19,Vinci,DG.PA,FR0000125486,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+20,Orange,ORA.PA,FR0000133308,STOCK,Communication Services,France,EUR,True,False,YAHOO,True,0.2
+21,Danone,BN.PA,FR0000120644,STOCK,Consumer Staples,France,EUR,True,False,YAHOO,True,0.2
+22,Bouygues,EN.PA,FR0000120503,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+24,Thales,HO.PA,FR0000121329,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+25,Société Générale,GLE.PA,FR0000130809,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+26,Legrand,LR.PA,FR0010307819,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+27,ArcelorMittal,MT.AS,LU1598757687,STOCK,Materials,Luxembourg,EUR,True,False,YAHOO,True,0.2
+28,Stellantis,STLAM.MI,NL00150001Q9,STOCK,Consumer Discretionary,Pays-Bas,EUR,True,False,YAHOO,True,0.2
+29,Dassault Systèmes,DSY.PA,FR0000130650,STOCK,Information Technology,France,EUR,True,False,YAHOO,True,0.2
+30,Veolia Environnement,VIE.PA,FR0000124141,STOCK,Utilities,France,EUR,True,False,YAHOO,True,0.2
+31,Dassault Aviation,AM.PA,FR0014004L86,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+32,Publicis Groupe,PUB.PA,FR0000130577,STOCK,Communication Services,France,EUR,True,False,YAHOO,True,0.2
+33,Sartorius Stedim,DIM.PA,FR0013154002,STOCK,Health Care,France,EUR,True,False,YAHOO,True,0.2
+34,Michelin (CGDE),ML.PA,FR0000121261,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+35,Pernod Ricard,RI.PA,FR0000120693,STOCK,Consumer Staples,France,EUR,True,False,YAHOO,True,0.2
+38,Amundi,AMUN.PA,FR0004125920,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+39,Bolloré,BOL.PA,FR0000039299,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+40,Unibail-Rodamco,URW.PA,FR0013326246,STOCK,Real Estate,France,EUR,True,False,YAHOO,True,0.2
+41,Euronext,ENX.PA,NL0006294274,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+42,bioMérieux,BIM.PA,FR0013280286,STOCK,Health Care,France,EUR,True,False,YAHOO,True,0.2
+43,Aéroports de Paris,ADP.PA,FR0010340141,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+44,Bureau Veritas,BVI.PA,FR0006174348,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+45,Eiffage,FGR.PA,FR0000130452,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+46,Accor,AC.PA,FR0000120404,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+47,Eurofins Scientific,ERF.PA,FR0014000MR3,STOCK,Health Care,France,EUR,True,False,YAHOO,True,0.2
+48,Ipsen,IPN.PA,FR0010259150,STOCK,Health Care,France,EUR,True,False,YAHOO,True,0.2
+49,Klépierre,LI.PA,FR0000121964,STOCK,Real Estate,France,EUR,True,False,YAHOO,True,0.2
+50,Carrefour,CA.PA,FR0000120172,STOCK,Consumer Staples,France,EUR,True,False,YAHOO,True,0.2
+51,Rexel,RXL.PA,FR0010451203,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+52,Renault,RNO.PA,FR0000131906,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+53,Ayvens (ex-ALD),AYV.PA,FR0013258662,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+54,Getlink,GET.PA,FR0010533075,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+55,Spie,SPIE.PA,FR0012757854,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+56,Abivax,ABVX.PA,FR0012333284,STOCK,Health Care,France,EUR,True,False,YAHOO,True,0.2
+57,Sodexo,SW.PA,FR0000121220,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+58,Gaztransport & Technigaz,GTT.PA,FR0011726835,STOCK,Energy,France,EUR,True,False,YAHOO,True,0.2
+59,Covivio,COV.PA,FR0000064578,STOCK,Real Estate,France,EUR,True,False,YAHOO,True,0.2
+60,Gecina,GFC.PA,FR0010040865,STOCK,Real Estate,France,EUR,True,False,YAHOO,True,0.2
+61,Technip Energies,TE.PA,NL0014559478,STOCK,Energy,France,EUR,True,False,YAHOO,True,0.2
+62,Elis,ELIS.PA,FR0012435121,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+63,Nexans,NEX.PA,FR0000044448,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+64,Scor SE,SCR.PA,FR0010411983,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+65,Edenred,EDEN.PA,FR0010908533,STOCK,Industrials,France,EUR,True,False,YAHOO,True,0.2
+66,Française des Jeux,FDJU.PA,FR0013451333,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+67,Arkema,AKE.PA,FR0010313833,STOCK,Materials,France,EUR,True,False,YAHOO,True,0.2
+68,Vallourec,VK.PA,FR0013506730,STOCK,Materials,France,EUR,True,False,YAHOO,True,0.2
+69,Eurazeo,RF.PA,FR0000121121,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+70,Rubis,RUI.PA,FR0013269123,STOCK,Energy,France,EUR,True,False,YAHOO,True,0.2
+72,Remy Cointreau,RCO.PA,FR0000130395,STOCK,Consumer Staples,France,EUR,True,False,YAHOO,True,0.2
+74,SEB SA,SK.PA,FR0000121709,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+75,Saint-Gobain,SGO.PA,FR0000125007,STOCK,Materials,France,EUR,True,False,YAHOO,True,0.2
+80,Soitec,SOI.PA,FR0013227113,STOCK,Information Technology,France,EUR,True,False,YAHOO,True,0.2
+81,Sopra Steria,SOP.PA,FR0000050809,STOCK,Information Technology,France,EUR,True,False,YAHOO,True,0.2
+84,Trigano,TRI.PA,FR0005691656,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+85,Ubisoft,UBI.PA,FR0000054470,STOCK,Communication Services,France,EUR,True,False,YAHOO,True,0.2
+87,Valeo,FR.PA,FR0013176526,STOCK,Consumer Discretionary,France,EUR,True,False,YAHOO,True,0.2
+89,Verallia,VRLA.PA,FR0013447729,STOCK,Materials,France,EUR,True,False,YAHOO,True,0.2
+90,Vicat,VCT.PA,FR0000031775,STOCK,Materials,France,EUR,True,False,YAHOO,True,0.2
+91,Vivendi,VIV.PA,FR0000127771,STOCK,Communication Services,France,EUR,True,False,YAHOO,True,0.2
+92,Virbac,VIRP.PA,FR0000031577,STOCK,Health Care,France,EUR,True,False,YAHOO,True,0.2
+93,Wendel,MF.PA,FR0000121204,STOCK,Financials,France,EUR,True,False,YAHOO,True,0.2
+94,Worldline,WLN.PA,FR0011981968,STOCK,Information Technology,France,EUR,True,False,YAHOO,True,0.2
+96,Prosus N.V.,PRX.AS,NL0013654783,STOCK,Consumer Discretionary,Pays-Bas,EUR,True,False,YAHOO,True,0.2
+97,Adyen N.V.,ADYEN.AS,NL0012969182,STOCK,Information Technology,Pays-Bas,EUR,True,False,YAHOO,True,0.2
+98,Wolters Kluwer,WKL.AS,NL0000395903,STOCK,Industrials,Pays-Bas,EUR,True,False,YAHOO,True,0.2
+99,Ahold Delhaize,AD.AS,NL0011794037,STOCK,Consumer Staples,Pays-Bas,EUR,True,False,YAHOO,True,0.2
+100,Ferrari N.V.,RACE.MI,NL0011585146,STOCK,Consumer Discretionary,Pays-Bas,EUR,True,False,YAHOO,True,0.2
+104,Deutsche Telekom,DTE.DE,DE0005557508,STOCK,Communication Services,Allemagne,EUR,True,False,YAHOO,True,0.2
+105,Munich Re,MUV2.DE,DE0008430026,STOCK,Financials,Allemagne,EUR,True,False,YAHOO,True,0.2
+106,Rheinmetall,RHM.DE,DE0007030009,STOCK,Industrials,Allemagne,EUR,True,False,YAHOO,True,0.2
+107,Mercedes-Benz Group,MBG.DE,DE0007100000,STOCK,Consumer Discretionary,Allemagne,EUR,True,False,YAHOO,True,0.2
+108,BMW AG,BMW.DE,DE0005190003,STOCK,Consumer Discretionary,Allemagne,EUR,True,False,YAHOO,True,0.2
+109,Volkswagen AG (Pref),VOW3.DE,DE0007664039,STOCK,Consumer Discretionary,Allemagne,EUR,True,False,YAHOO,True,0.2
+111,Deutsche Börse,DB1.DE,DE0005810055,STOCK,Financials,Allemagne,EUR,True,False,YAHOO,True,0.2
+112,BASF SE,BAS.DE,DE000BASF111,STOCK,Materials,Allemagne,EUR,True,False,YAHOO,True,0.2
+113,Bayer AG,BAYN.DE,DE000BAY0017,STOCK,Health Care,Allemagne,EUR,True,False,YAHOO,True,0.2
+114,Infineon Technologies,IFX.DE,DE0006231004,STOCK,Information Technology,Allemagne,EUR,True,False,YAHOO,True,0.2
+115,Adidas AG,ADS.DE,DE000A1EWWW0,STOCK,Consumer Discretionary,Allemagne,EUR,True,False,YAHOO,True,0.2
+116,Santander S.A.,SAN.MC,ES0113900J37,STOCK,Financials,Espagne,EUR,True,False,YAHOO,True,0.2
+117,Inditex (Zara),ITX.MC,ES0148396007,STOCK,Consumer Discretionary,Espagne,EUR,True,False,YAHOO,True,0.2
+118,Iberdrola S.A.,IBE.MC,ES0144580Y14,STOCK,Utilities,Espagne,EUR,True,False,YAHOO,True,0.2
+119,BBVA,BBVA.MC,ES0113211835,STOCK,Financials,Espagne,EUR,True,False,YAHOO,True,0.2
+120,Enel S.p.A.,ENEL.MI,IT0003128367,STOCK,Utilities,Italie,EUR,True,False,YAHOO,True,0.2
+121,Intesa Sanpaolo,ISP.MI,IT0000072618,STOCK,Financials,Italie,EUR,True,False,YAHOO,True,0.2
+122,UniCredit,UCG.MI,IT0005239360,STOCK,Financials,Italie,EUR,True,False,YAHOO,True,0.2
+123,Eni S.p.A.,ENI.MI,IT0003132476,STOCK,Energy,Italie,EUR,True,False,YAHOO,True,0.2
+124,AB InBev,ABI.BR,BE0974293251,STOCK,Consumer Staples,Belgique,EUR,True,False,YAHOO,True,0.2
+125,Nokia Oyj,NOKIA.HE,FI0009000681,STOCK,Communication Services,Finlande,EUR,True,False,YAHOO,True,0.2
+126,Nordea Bank,NDA-FI.HE,FI4000297767,STOCK,Financials,Finlande,EUR,True,False,YAHOO,True,0.2
+127,Amundi PEA MSCI Europe,CEU.PA,LU1681043113,ETF,Equity ETF,Luxembourg,EUR,True,False,YAHOO,True,0.3
+128,Amundi PEA Monde (MSCI World),DCAM.PA,FR001400U5Q4,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+129,Amundi PEA S&P 500,PSP5.PA,FR0011871128,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+130,Amundi PEA MSCI Emerging,PAEEM.PA,FR0013412020,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+131,Amundi CAC 40 UCITS ETF,CAC.PA,FR0007052782,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+132,Amundi Euro STOXX 50 ETF,MSE.PA,FR0007054358,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+133,Lyxor DAX (DR) UCITS ETF,DAX.PA,LU0252633754,ETF,Equity ETF,Luxembourg,EUR,True,False,YAHOO,True,0.3
+134,Amundi PEA Nasdaq-100,PUST.PA,FR0013412285,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+136,BNP Paribas Easy MSCI World,EWLD.PA,LU0994205461,ETF,Equity ETF,Luxembourg,EUR,True,False,YAHOO,True,0.3
+137,BNP Paribas Easy S&P 500,SP5.PA,LU0974788274,ETF,Equity ETF,Luxembourg,EUR,True,False,YAHOO,True,0.3
+138,Amundi PEA MSCI Emerging Asia,PAEJ.PA,FR0011869312,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+140,iShares MSCI Europe ETF,IMEU.L,IE00B4K48X80,ETF,Equity ETF,Ireland,EUR,True,False,YAHOO,True,0.3
+141,Lyxor Euro STOXX 600 (DR),MEUD.PA,LU0908501215,ETF,Equity ETF,Luxembourg,EUR,True,False,YAHOO,True,0.3
+145,Amundi MSCI World ETF,CW8.PA,LU1681043599,ETF,Equity ETF,Luxembourg,EUR,True,False,YAHOO,True,0.3
+146,Amundi MSCI EM Asia ETF,AASI.PA,LU1681045370,ETF,Equity ETF,Luxembourg,EUR,True,False,YAHOO,True,0.3
+147,Amundi MSCI EMU Climate Paris Aligned (Acc),PABZ.PA,,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+148,Amundi STOXX Europe 600 Utilities (Acc),UTI.PA,,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
+149,Amundi CAC 40 ESG (Acc),C40.PA,,ETF,Equity ETF,France,EUR,True,False,YAHOO,True,0.3
