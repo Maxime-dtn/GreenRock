@@ -256,65 +256,78 @@ def clean_universe(df):
 
 #%% Pipline complète 
 
-def prepare_data(chemin_fichier, chemin_sortie):
+def prepare_data(chemin_fichier):
     """
-    Pipeline complet de préparation des données ESG.
-
-    Étapes :
-    1. Import des données brutes
-    2. Dédoublonnage par ISIN
-    3. Nettoyage et normalisation
-    4. Ajout de la colonne EXCLUDED
-    5. Export vers un nouveau fichier Excel
+    Importe, dédoublonne et nettoie les données ESG.
 
     Returns
     -------
-    pd.DataFrame
+    df : pd.DataFrame
         DataFrame final nettoyé.
+    removed : pd.DataFrame
+        Entreprises supprimées lors du dédoublonnage.
+    controversies : pd.DataFrame
+        Données de l'onglet Controverses.
     """
 
-    # =========================================================
-    # 1. IMPORT
-    # =========================================================
-
+    # 1. Import
     universe, controversies = load_data(chemin_fichier)
 
-    # =========================================================
-    # 2. DÉDOUBLONNAGE
-    # =========================================================
-
+    # 2. Dédoublonnage
     universe, removed = deduplicate(universe)
 
-    # =========================================================
-    # 3. NETTOYAGE / NORMALISATION
-    # =========================================================
-
+    # 3. Nettoyage et normalisation
     df = clean_universe(universe)
 
-    # =========================================================
-    # 4. INITIALISATION DU SCREENING
-    # =========================================================
-
+    # 4. Initialisation du screening
     df["EXCLUDED"] = False
 
-    # =========================================================
-    # 5. EXPORT EXCEL
-    # =========================================================
-
-    df.to_excel(
-        chemin_sortie,
-        index=False,
-        sheet_name="Données nettoyées"
-    )
-
-    print(f"Fichier nettoyé créé : {chemin_sortie}")
-    print(f"Nombre d'entreprises : {len(df)}")
-    print(f"Nombre de doublons supprimés : {len(removed)}")
-
-    return df
+    return df, removed, controversies
 
 
-df = prepare_data(chemin_fichier, chemin_sortie)
+def export_to_excel(df, chemin_sortie, removed=None, controversies=None):
+    """
+    Exporte les données nettoyées dans un fichier Excel.
+
+    Onglets créés :
+    - Données nettoyées
+    - Doublons supprimés (si fourni)
+    - Controverses (si fourni)
+    """
+
+    with pd.ExcelWriter(chemin_sortie, engine="openpyxl") as writer:
+
+        # Données finales
+        df.to_excel(
+            writer,
+            index=False,
+            sheet_name="Données nettoyées"
+        )
+
+        # Doublons supprimés
+        if removed is not None:
+            removed.to_excel(
+                writer,
+                index=False,
+                sheet_name="Doublons supprimés"
+            )
+
+        # Controverses
+        if controversies is not None:
+            controversies.to_excel(
+                writer,
+                index=False,
+                sheet_name="Controverses"
+            )
+
+    print(f"Fichier Excel créé : {chemin_sortie}")
+
+    df, removed, controversies = prepare_data(chemin_fichier)
+
+df, removed, controversies = prepare_data(chemin_fichier)
+
+# Export Excel
+export_to_excel(df, chemin_sortie)
 
 print(df.head())
 print(df.shape)

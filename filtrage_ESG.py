@@ -1,5 +1,12 @@
 import pandas as pd
 import numpy as np
+from normalisation_data import load_data, deduplicate, clean_universe, parse_number, parse_bool, _clean_text, prepare_data, chemin_fichier
+
+
+df, removed, controversies = prepare_data(chemin_fichier)
+
+print(df.head())
+
 
 ## règle binaire sur % CA
 
@@ -13,15 +20,7 @@ import numpy as np
 ## GCEL : recense  les entreprises développant de nouvelles projets liés au charbon.
 ## GOGEL : ecense  les entreprises développant de nouvelles projets liés au pétrole et au gaz.
 
-def load_data():
-    chemin_fichier = "Data/Providence_TD_raw_data.xlsx"
-    # Remplacer la lecture du CSV par la lecture du fichier Excel brut
-    df = pd.read_excel(chemin_fichier, sheet_name="Univers brut")
-    return df
 
-
-df = load_data()
-print(df.head())
 
 
 
