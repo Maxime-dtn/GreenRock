@@ -13,7 +13,15 @@ import numpy as np
 ## GCEL : recense  les entreprises développant de nouvelles projets liés au charbon.
 ## GOGEL : ecense  les entreprises développant de nouvelles projets liés au pétrole et au gaz.
 
-## ... 
+def load_data():
+    chemin_fichier = "Data/Providence_TD_raw_data.xlsx"
+    # Remplacer la lecture du CSV par la lecture du fichier Excel brut
+    df = pd.read_excel(chemin_fichier, sheet_name="Univers brut")
+    return df
+
+
+df = load_data()
+print(df.head())
 
 
 
@@ -25,4 +33,3 @@ gcel = load_gcel()
 
 def normalize_company_name(name):
     ...
-    

@@ -28,6 +28,7 @@ RISK_AVERSION = 5.0
 MIN_WEIGHT = 0.0
 MAX_WEIGHT = 1.0
 
+# %%
 
 def get_investable_universe(df):
     """
