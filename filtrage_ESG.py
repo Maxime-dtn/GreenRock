@@ -25,6 +25,8 @@ print(df.head())
 
 
 
+
+
 def load_gcel():
     return pd.read_excel("Data/GCEL.xlsx")
 
@@ -33,3 +35,15 @@ gcel = load_gcel()
 
 def normalize_company_name(name):
     ...
+
+
+def flag_controversial_weapons(df):
+    mask_weapons = df['controversial_weapons_involvement'] == True
+    mask_ungc_oecd = df['ungc_oecd_violation'] == True     
+    df.loc[mask_weapons, 'EXCLUDED'] = True
+    return df
+
+def flag_controversial_weapons(df):
+    mask = df['controversial_weapons_involvement'] == True    
+    df.loc[mask, 'EXCLUDED'] = True
+    return df
