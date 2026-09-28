@@ -21,3 +21,8 @@ def load_gcel():
     return pd.read_excel("Data/GCEL.xlsx")
 
 gcel = load_gcel()
+
+
+def normalize_company_name(name):
+    ...
+    

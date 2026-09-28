@@ -1,3 +1,4 @@
+#%%
 import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
@@ -7,7 +8,10 @@ from scipy.optimize import minimize
 ## IMPORT DES DONNEES 
 
 def load_data():
-    return pd.read_csv("Data/données.csv")
+    chemin_fichier = "Data/Providence_TD_raw_data.xlsx"
+    # Remplacer la lecture du CSV par la lecture du fichier Excel brut
+    df = pd.read_excel(chemin_fichier, sheet_name="Univers brut")
+    return df
 
 
 df = load_data()
