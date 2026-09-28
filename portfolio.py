@@ -9,19 +9,38 @@ from scipy.optimize import minimize
 def load_data():
     return pd.read_csv("Data/données.csv")
 
+
 df = load_data()
 print(df.head())
+
+
 # %%
 
 ## SCREENING DES DONNES (FILTRES)
 
-CARBON_REDUCTION_INITIAL = 0.50 # WACI <= 50 % du benchmark 
+CARBON_REDUCTION_INITIAL = 0.50 # WACI <= 50 % du benchmark
 ANNUAL_CARBON_REDUCTION = 0.07 # -7 % par an
-RISK_AVERSION = 5.0 
-TRADING_DAYS = 252 
-MIN_WEIGHT = 0.0 
+RISK_AVERSION = 5.0
+MIN_WEIGHT = 0.0
 MAX_WEIGHT = 1.0
 
+
+def get_investable_universe(df):
+    """
+    Retourne uniquement les entreprises qui passent
+    tous les filtres d'exclusion.
+    """
+
+    investable = df[df["EXCLUDED"] == 0].copy()
+
+    if len(investable) == 0:
+        raise ValueError(
+            "Aucune entreprise ne reste dans l'univers investissable."
+        )
+    return investable
+
+
+df_investable = get_investable_universe(df)
 carbon_intensity = df['carbon_intensity'].tolist()
 esperance = df['esperance'].tolist()
 cov = df[['covariance_1', 'covariance_2', 'covariance_3']].values
@@ -29,8 +48,6 @@ poids = [0]*len(carbon_intensity)
 lambda_risk = 5
 
 #%% 
-
-
 
 def calculate_waci(weights, carbon_intensity): 
     return np.dot( weights, carbon_intensity )
@@ -40,7 +57,6 @@ def calculate_benchmark_waci(carbon):
     carbon_intensity = carbon["CarbonIntensity"].values 
     waci = calculate_waci( benchmark_weights, carbon_intensity ) 
     return waci
-
 
 ## Il est nécessaire d'imposer WACI =< 1/2 * WACI du benchmark
 
@@ -80,29 +96,25 @@ def optimize_markowitz( mu, covariance, carbon_intensity, carbon_limit, initial_
     result = minimize( markowitz_objective, initial_weights, args=( mu, covariance, risk_aversion ), method="SLSQP", bounds=bounds, constraints=constraints, options={ "maxiter": 2000, "ftol": 1e-10 } ) 
     return result
 
-
-
 ## INDICATEURS DU PORTEFEUILLE
 
 def portfolio_metrics( weights, mu, covariance, carbon_intensity, benchmark_weights ): 
     portfolio_return = ( weights @ mu ) 
     portfolio_variance = ( weights @ covariance @ weights ) 
-    portfolio_volatility = np.sqrt( portfolio_variance ) 
+    portfolio_volatility = np.sqrt( portfolio_variance )
     portfolio_waci = ( weights @ carbon_intensity ) 
     benchmark_waci = ( benchmark_weights @ carbon_intensity ) 
     carbon_reduction = ( 1 - portfolio_waci / benchmark_waci )
     return portfolio_return, portfolio_variance, portfolio_volatility, portfolio_waci, benchmark_waci, carbon_reduction
 
-
-
 def carbon_trajectory( initial_waci, years, annual_reduction=0.07 ): 
-    trajectory = [] 
-    for year in range(years + 1): 
-        target = ( initial_waci * (1 - annual_reduction) ** year ) 
+    trajectory = []
+    for year in range(years + 1):
+        target = ( initial_waci * (1 - annual_reduction) ** year )
         trajectory.append({ "Year": year, "Maximum WACI": target })
     return pd.DataFrame(trajectory)
 
-def optimize_for_year( year, initial_waci, mu, covariance, carbon_intensity, benchmark_weights, method="markowitz" ):
+def optimize_for_year( year, initial_waci, mu, covariance, carbon_intensity, benchmark_weights ):
     carbon_limit = ( initial_waci * (1 - ANNUAL_CARBON_REDUCTION) ** year )
     initial_weights = benchmark_weights.copy()
     result = optimize_markowitz( mu, covariance, carbon_intensity, carbon_limit, initial_weights, RISK_AVERSION )

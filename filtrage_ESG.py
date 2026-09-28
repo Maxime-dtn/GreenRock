@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+
 ## règle binaire sur % CA
 
 ## charbon extraction >5%
@@ -11,3 +14,10 @@
 ## GOGEL : ecense  les entreprises développant de nouvelles projets liés au pétrole et au gaz.
 
 ## ... 
+
+
+
+def load_gcel():
+    return pd.read_excel("Data/GCEL.xlsx")
+
+gcel = load_gcel()
