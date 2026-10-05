@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 from normalisation_data import load_data, deduplicate, clean_universe, parse_number, parse_bool, _clean_text, prepare_data, chemin_fichier
 
-
-df, removed, controversies = prepare_data(chemin_fichier)
-
+universe, controversies = load_data()
+df, removed, controversies = prepare_data(universe, controversies)
 print(df.head())
 
 
@@ -19,11 +18,6 @@ print(df.head())
 
 ## GCEL : recense  les entreprises développant de nouvelles projets liés au charbon.
 ## GOGEL : ecense  les entreprises développant de nouvelles projets liés au pétrole et au gaz.
-
-
-
-
-
 
 
 def load_gcel():

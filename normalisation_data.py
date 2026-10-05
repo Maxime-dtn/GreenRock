@@ -1,334 +1,396 @@
+#%% 1. Import des bibliothèques 
+
 import pandas as pd
 import numpy as np
-
-# --- Conventions de nettoyage
-LT_FACTOR = 0.5                   # "<1" est lu comme 0.5 (moitié de la borne)
-SCOPE3_PROVIDER = "a"             # "a" ou "b" (colonne ghg_scope3_provider_*)
+import re
+from pathlib import Path
 
 
-chemin_fichier ="Data/Providence_TD_raw_data.xlsx"
-chemin_sortie = "Data/Providence_TD_clean.xlsx"
+DATA_DIR = Path(__file__).resolve().parent / "Data"
+chemin_fichier = DATA_DIR / "data_base.xlsx"
  
 _MISSING_TOKENS = {"", "-", "n/a", "na", "n.a.", "n.d.", "nd", "not disclosed",
                    "none", "nan", "not assessed", "under review"}
-_TRUE_TOKENS = {"yes", "y", "true", "1", "oui"}
-_FALSE_TOKENS = {"no", "n", "false", "0", "non"}
+_TRUE_TOKENS = {"yes", "y", "true", "1", "oui", "1.0"}
+_FALSE_TOKENS = {"no", "n", "false", "0", "non", "0.0"}
 
-_EMISSION_TO_TONNES = {"tco2e": 1.0, "ktco2e": 1e3, "mtco2e": 1e6}
-_ESTIMATED_SOURCES = {"estimated", "provider estimate", "sector average model"}
 
-#%% 1. IMPORT, DÉDOUBLONNAGE ET NETTOYAGE
+#%% 1. Import des données
 
-def load_data(chemin_fichier):
-    """Lit les deux onglets utiles, tout en texte (aucune conversion automatique)."""
-    universe = pd.read_excel(chemin_fichier, sheet_name="Univers brut", dtype=str)
-    controversies = pd.read_excel(chemin_fichier, sheet_name="Controverses", dtype=str)
-    universe.columns = universe.columns.str.strip()
-    controversies.columns = controversies.columns.str.strip()
+def load_data(path=chemin_fichier):
+    """Charge uniquement les onglets Universe et Controversies."""
+    with pd.ExcelFile(path, engine="openpyxl") as book:
+        universe = pd.read_excel(book, sheet_name="Universe")
+        controversies = pd.read_excel(book, sheet_name="Controversies")
+
     return universe, controversies
 
 
 #%% 2. FONCTIONS DE PARSING (texte -> nombre / booléen)
  
-def _clean_text(x):
-    """Minuscule, sans espaces insécables ni espaces de bord ; '' si vide."""
-    if pd.isna(x):
-        return ""
-    return str(x).replace("\u00a0", " ").replace("\u202f", " ").strip().lower()
+
+## Formalise les chaines de carractères : supprime les espaces en début et fin, convertit les chaines vides en <NA>.
+def _clean_text(value):
+    if pd.isna(value):
+        return pd.NA
+    value = str(value).strip()
+    return value if value else pd.NA
 
 
-def parse_number(x, lt_factor=LT_FACTOR):
+
+## Formalise les flottants : supprime les espaces, remplace la virgule par un point, convertit les chaines vides en <NA>.
+def parse_number(value):
+    """Convertit une valeur en float.
+
+    Conventions :
+    - virgule ou point comme séparateur décimal ;
+    - espaces supprimés ;
+    - "12,5 %" -> 12.5 ;
+    - "(250)" -> -250 ;
+    - "<10" -> 5 ;
+    - "10–20" ou "[10;20]" -> 15 ;
+    - valeur manquante -> np.nan.
     """
-    Convertit les nombres stockés en texte : '7 650', '12,4 %', '<1', '~30'.
-    'n/a', 'not disclosed', '-', vide => NaN.  '<b' => b * lt_factor.
-    """
-    raw = _clean_text(x)
-    if raw in _MISSING_TOKENS:
+    if pd.isna(value):
         return np.nan
-    s = raw.replace(" ", "").replace("%", "").replace("≈", "~").lstrip("~")
-    below = s.startswith("<")
-    s = s.lstrip("<").replace(",", ".")
-    try:
-        value = float(s)
-    except ValueError:
-        return np.nan
-    return value * lt_factor if below else value
 
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError("Un booléen ne peut pas être converti en nombre.")
 
+    if isinstance(value, str):
+        value = value.strip()
 
-def parse_bool(x):
-    """Yes/Y/TRUE/1/oui => True ; No/N/FALSE/0/non => False ; le reste => <NA>."""
-    s = _clean_text(x)
-    if s in _TRUE_TOKENS:
-        return True
-    if s in _FALSE_TOKENS:
-        return False
-    return pd.NA          # vide, 'Under review', 'Not assessed' : ni oui ni non
+        if value.lower() in {
+            "", "na", "n/a", "nan", "none", "null", "nd", "n.d."
+        }:
+            return np.nan
 
-
-
-#%% Dédoublonnage par ISIN.
-
-def deduplicate(universe):
-
-    df = universe.copy()
-
-    # Nombre de valeurs renseignées par ligne
-    df["_completeness"] = df.notna().sum(axis=1)
-
-    # Ordre d'apparition initial
-    df["_original_order"] = range(len(df))
-
-    # Tri :
-    # 1. ISIN
-    # 2. complétude décroissante
-    # 3. ordre d'apparition croissant
-
-    df = df.sort_values(
-        ["isin", "_completeness", "_original_order"],
-        ascending=[True, False, True]
-    )
-
-    # Garde une seule ligne par ISIN
-    kept = df.drop_duplicates(
-        subset="isin",
-        keep="first"
-    )
-
-    # Récupère les lignes supprimées
-    removed = df.loc[
-        ~df.index.isin(kept.index),
-        ["issuer_name", "isin"]
-    ].copy()
-
-    # Nettoyage
-    kept = kept.drop(
-        columns=["_completeness", "_original_order"]
-    )
-
-    return kept.sort_index().reset_index(drop=True), removed.reset_index(drop=True)
-    
-#%% Normalisation des colonnes et calcul de l'intensité carbone
-
-def clean_universe(df):
-    """
-    Colonnes typées et normalisées :
-
-      - émissions en tCO2e (facteur selon ghg_unit : t / kt / Mt)
-      - chiffre d'affaires et capitalisation en M EUR
-        (divisés par fx_rate_to_eur_at_year_end,
-        exprimé en devise locale pour 1 EUR :
-        USD 1.08, GBP 0.85, JPY 168, ...)
-      - carbon_intensity = (scope 1 + scope 2 location-based) / CA,
-        en tCO2e par M EUR
-    """
-
-    # Colonnes conservées
-    # Le dédoublonnage se fait désormais uniquement par ISIN,
-    out = df[["isin", "issuer_name", "nace_code", "nace_label"]].copy()
-
-    factor = (
-        df["ghg_unit"]
-        .map(_clean_text)
-        .map(_EMISSION_TO_TONNES)
-    )
-
-    if factor.isna().any():
-        raise ValueError(
-            "Unité d'émissions inconnue : "
-            f"{df.loc[factor.isna(), 'ghg_unit'].unique()}"
+        value = "".join(value.split())
+        value = (
+            value.replace("−", "-")
+            .replace("–", "-")
+            .replace("—", "-")
+            .replace(",", ".")
+            .replace("%", "")
         )
 
-    # =========================================================
-    # TAUX DE CHANGE
-    # =========================================================
+        # Motif d'un nombre, éventuellement négatif ou scientifique.
+        number = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
 
-    fx = df["fx_rate_to_eur_at_year_end"].map(parse_number)
+        # Borne supérieure : <x devient x / 2.
+        upper_bound = re.fullmatch(rf"<({number})", value)
 
-    if fx.isna().any() or (fx <= 0).any():
-        raise ValueError("Taux de change manquant ou nul.")
+        # Intervalle : a-b, a;b ou [a;b].
+        interval_text = value
+        if value.startswith("[") and value.endswith("]"):
+            interval_text = value[1:-1]
 
-    # =========================================================
-    # CHIFFRE D'AFFAIRES ET CAPITALISATION
-    # =========================================================
+        interval = re.fullmatch(
+            rf"({number})(?:;|-)({number})",
+            interval_text,
+        )
 
-    out["revenue_eur_m"] = (
-        df["revenue_reported"].map(parse_number) / fx
+        if upper_bound:
+            bound = float(upper_bound.group(1))
+
+            if bound <= 0:
+                raise ValueError(
+                    "L'approximation <x -> x/2 exige une borne positive."
+                )
+
+            result = bound / 2
+
+        elif interval:
+            lower = float(interval.group(1))
+            upper = float(interval.group(2))
+
+            if not np.isfinite([lower, upper]).all():
+                raise ValueError(f"Bornes non finies : {value!r}")
+
+            if lower > upper:
+                raise ValueError(f"Intervalle inversé : {value!r}")
+
+            result = lower / 2 + upper / 2
+
+        else:
+            # Parenthèses comptables : (250) devient -250.
+            if value.startswith("(") and value.endswith(")"):
+                inner = value[1:-1]
+
+                if inner.startswith(("-", "+")):
+                    raise ValueError(
+                        f"Notation comptable ambiguë : {value!r}"
+                    )
+
+                value = "-" + inner
+
+            try:
+                result = float(value)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Valeur numérique non reconnue : {value!r}"
+                ) from exc
+
+    else:
+        result = float(value)
+
+    if not np.isfinite(result):
+        raise ValueError(f"Nombre non fini : {value!r}")
+
+    return result
+
+
+## Formalise les booléens : supprime les espaces, convertit les chaines vides en <NA>, "oui"/"non" en True/False.
+def parse_bool(value):
+
+    if pd.isna(value):
+        return pd.NA
+    token = str(value).strip().lower()
+    if token in _MISSING_TOKENS:
+        return pd.NA
+    if token in _TRUE_TOKENS:
+        return True
+    if token in _FALSE_TOKENS:
+        return False
+    raise ValueError(f"Booléen non reconnu : {value!r}")
+
+## Formalise les dates : supprime les espaces, convertit les chaines vides en <NA>, convertit les dates en datetime.
+def normalize_dates(df, column="event_date", date_format="%Y-%m-%d"):
+
+    if column not in df.columns:
+        raise ValueError(f"Colonne absente : {column!r}")
+
+    out = df.copy()
+
+    # Transformer les textes vides en valeurs manquantes.
+    values = out[column].replace(r"^\s*$", pd.NA, regex=True)
+
+    out[column] = pd.to_datetime(
+        values,
+        format=date_format,
+        errors="raise"
     )
 
-    out["market_cap_eur_m"] = (
-        df["market_cap"].map(parse_number) / fx
-    )
+    return out
 
-    # =========================================================
-    # ÉMISSIONS SCOPE 1 / 2 / 3
-    # =========================================================
+#%% Vérifie que toutes les colonnes sont présente 
+## (vérifie entre autre que les entreprises présentes dans l'onglet Controverses sont bien dans l'onglet Universe).
 
-    scope1 = (
-        df["ghg_scope1"].map(parse_number) * factor
-    )
+def require_columns(df, columns, table):
+    missing = set(columns) - set(df.columns)
+    if missing:
+        raise ValueError(f"{table} : colonnes absentes : {sorted(missing)}")
 
-    scope2 = (
-        df["ghg_scope2_location_based"].map(parse_number) * factor
-    )
+## Normalise les identifiants d'entreprise : supprime les espaces aux extrémités, convertit les chaines vides en <NA>.
+def normalize_ids(df, column="id"):
+    """Nettoie les identifiants sans modifier leur signification."""
+    if column not in df.columns:
+        raise ValueError(f"Colonne absente : {column!r}")
 
-    scope3 = (
-        df[f"ghg_scope3_provider_{SCOPE3_PROVIDER}"]
-        .map(parse_number) * factor
-    )
+    out = df.copy()
 
-    # =========================================================
-    # CARBON INTENSITY
-    # =========================================================
-
-    out["carbon_intensity"] = (
-        scope1 + scope2
-    ) / out["revenue_eur_m"]
-
-    out["carbon_intensity_s123"] = (
-        scope1 + scope2 + scope3
-    ) / out["revenue_eur_m"]
-
-    # =========================================================
-    # ANNÉE ET QUALITÉ DES DONNÉES GHG
-    # =========================================================
-
-    out["ghg_reporting_year"] = pd.to_numeric(
-        df["ghg_reporting_year"],
-        errors="coerce"
-    )
-
-    out["ghg_estimated"] = (
-        df["ghg_data_source"]
+    # Supprimer les espaces aux extrémités.
+    # Conserver les accents, la casse et les caractères internes.
+    out[column] = (
+        out[column]
         .map(_clean_text)
-        .isin(_ESTIMATED_SOURCES)
+        .astype("string")
     )
 
-    # =========================================================
-    # ACTIVITÉS CONTROVERSÉES
-    # =========================================================
+    # Chaque entreprise doit avoir un identifiant.
+    missing = out[column].isna()
 
-    coal_raw = df["coal_revenue_share"].map(parse_number)
-
-    out["coal_pct"] = coal_raw.clip(upper=100)
-
-    out["tobacco_pct"] = (
-        df["tobacco_revenue_share"].map(parse_number)
-    )
-
-    out["weapons"] = (
-        df["controversial_weapons_involvement"]
-        .map(parse_bool)
-        .astype("boolean")
-    )
-
-    out["ungc_violation"] = (
-        df["ungc_oecd_violation"]
-        .map(parse_bool)
-        .astype("boolean")
-    )
-
-    out["new_fossil_expansion"] = (
-        df["new_fossil_expansion"]
-        .map(parse_bool)
-        .astype("boolean")
-    )
-
-    # =========================================================
-    # VÉRIFICATION DES DONNÉES ESSENTIELLES
-    # =========================================================
-
-    bad = out[
-        [
-            "revenue_eur_m",
-            "market_cap_eur_m",
-            "carbon_intensity"
-        ]
-    ].isna().any(axis=1)
-
-    if bad.any():
+    if missing.any():
         raise ValueError(
-            "CA, capitalisation ou émissions illisibles pour : "
-            f"{out.loc[bad, 'issuer_name'].tolist()}"
+            f"Identifiant manquant dans {column!r} "
+            f"aux index : {out.index[missing].tolist()}"
         )
 
     return out
 
-#%% Pipline complète 
+## Suppression des doublons
+def deduplicate(df, id_column="id"):
+    """Garantit une seule ligne par entreprise.
 
-def prepare_data(chemin_fichier):
+    - Supprime les répétitions entièrement identiques.
+    - Refuse les lignes différentes partageant le même identifiant.
+
+    Retourne :
+        cleaned : tableau sans doublons
+        removed : répétitions identiques supprimées
     """
-    Importe, dédoublonne et nettoie les données ESG.
+    out = normalize_ids(df, column=id_column)
 
-    Returns
-    -------
-    df : pd.DataFrame
-        DataFrame final nettoyé.
-    removed : pd.DataFrame
-        Entreprises supprimées lors du dédoublonnage.
-    controversies : pd.DataFrame
-        Données de l'onglet Controverses.
-    """
+    # 1. Retirer uniquement les lignes entièrement identiques.
+    exact_duplicates = out.duplicated(keep="first")
 
-    # 1. Import
-    universe, controversies = load_data(chemin_fichier)
+    removed = out.loc[exact_duplicates].copy()
+    cleaned = out.loc[~exact_duplicates].copy()
 
-    # 2. Dédoublonnage
-    universe, removed = deduplicate(universe)
+    # 2. Vérifier l'unicité de l'identifiant d'entreprise.
+    conflicts = cleaned[id_column].duplicated(keep=False)
 
-    # 3. Nettoyage et normalisation
-    df = clean_universe(universe)
-
-    # 4. Initialisation du screening
-    df["EXCLUDED"] = False
-
-    return df, removed, controversies
-
-
-def export_to_excel(df, chemin_sortie, removed=None, controversies=None):
-    """
-    Exporte les données nettoyées dans un fichier Excel.
-
-    Onglets créés :
-    - Données nettoyées
-    - Doublons supprimés (si fourni)
-    - Controverses (si fourni)
-    """
-
-    with pd.ExcelWriter(chemin_sortie, engine="openpyxl") as writer:
-
-        # Données finales
-        df.to_excel(
-            writer,
-            index=False,
-            sheet_name="Données nettoyées"
+    if conflicts.any():
+        conflicting_ids = (
+            cleaned.loc[conflicts, id_column]
+            .unique()
+            .tolist()
         )
 
-        # Doublons supprimés
-        if removed is not None:
-            removed.to_excel(
-                writer,
-                index=False,
-                sheet_name="Doublons supprimés"
-            )
+        raise ValueError(
+            "Plusieurs lignes différentes pour la même entreprise : "
+            f"{conflicting_ids}. "
+            "Vérifier les données avant de choisir une ligne."
+        )
 
-        # Controverses
-        if controversies is not None:
-            controversies.to_excel(
-                writer,
-                index=False,
-                sheet_name="Controverses"
-            )
+    return cleaned.reset_index(drop=True), removed.reset_index(drop=True)
+    
+#%% Nettoyage des des données
 
-    print(f"Fichier Excel créé : {chemin_sortie}")
+def clean_universe(df):
+    """Construit un nouveau DataFrame avec uniquement les colonnes normalisées.
 
-    df, removed, controversies = prepare_data(chemin_fichier)
+    id, name et sector sont nettoyés comme textes pour identifier les entreprises.
+    Les autres colonnes sources restent dans le DataFrame brut, sans modification.
 
-df, removed, controversies = prepare_data(chemin_fichier)
+    benchmark_weight, return_12m : décimaux (0.05 = 5 %).
+    carbon_intensity : tCO2e / M EUR de CA, scope 2 location-based.
+    Les flags normalisés portent le suffixe _bool, avec dtype boolean nullable.
+    EXCLUDED reste inconnu jusqu'au screening ; aucun titre n'est autorisé ici.
+    """
 
-# Export Excel
-export_to_excel(df, chemin_sortie)
+    required = ["benchmark_weight_pct", "return_12m_pct", "carbon_intensity_s12_t_per_meur_revenue", "scope1_mt", "scope2_mt", "revenue_eur_bn"]
+    require_columns(df, required, "Universe")
+    require_columns(df, ["id", "name", "sector"], "Universe")
+    out = pd.DataFrame(index=df.index)
+    out["id"] = normalize_ids(df, "id")["id"]
+    for column in ["name", "sector"]:
+        out[column] = df[column].map(_clean_text).astype("string")
+    numeric = {}
 
-print(df.head())
-print(df.shape)
+    for column in required:
+        try:
+            numeric[column] = df[column].map(parse_number)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Valeur numérique invalide dans {column}") from exc
+        
+        if numeric[column].isna().any():
+            raise ValueError(f"Donnée indispensable manquante dans {column}")
+    
+    raw_weights = numeric["benchmark_weight_pct"]
+    if (raw_weights < 0).any() or not np.isclose(raw_weights.sum(), 100, atol=0.01, rtol=0):
+        raise ValueError(f"Poids du benchmark invalides : somme = {raw_weights.sum()}")
+    
+    if (numeric["revenue_eur_bn"] <= 0).any():
+        raise ValueError("Le chiffre d'affaires doit être strictement positif.")
+    
+    if any((numeric[c] < 0).any() for c in ["scope1_mt", "scope2_mt", "carbon_intensity_s12_t_per_meur_revenue"]):
+        raise ValueError("Émissions ou intensité carbone négatives.")
+    
+    if (numeric["return_12m_pct"] < -100).any():
+        raise ValueError("Rendement inférieur à -100 %.")
 
+    out["benchmark_weight"] = raw_weights / raw_weights.sum()
+    out["return_12m"] = numeric["return_12m_pct"] / 100
+    out["carbon_intensity"] = numeric["carbon_intensity_s12_t_per_meur_revenue"]
+    out["scope1_tco2e"] = numeric["scope1_mt"] * 1_000_000
+    out["scope2_tco2e"] = numeric["scope2_mt"] * 1_000_000
+    out["revenue_meur"] = numeric["revenue_eur_bn"] * 1_000
+
+    out["carbon_intensity_recalculated"] = (
+        out["scope1_tco2e"] + out["scope2_tco2e"]
+    ) / out["revenue_meur"]
+    # Écart conservé pour audit ; on utilise la valeur source pour reproduire le benchmark.
+    out["carbon_intensity_gap"] = out["carbon_intensity_recalculated"] - out["carbon_intensity"]
+    
+    for column in df.columns:
+        if column.endswith("_flag"):
+            out[column + "_bool"] = pd.array(df[column].map(parse_bool), dtype="boolean")
+    out["EXCLUDED"] = pd.array([pd.NA] * len(out), dtype="boolean")
+    out["exclusion_reasons"] = pd.Series("", index=out.index, dtype="string")
+    return out
+
+
+
+
+def prepare_data(universe, controversies):
+    """Retourne (df normalisé, doublons retirés, controverses préparées).
+
+    Seul le premier DataFrame est destiné à l'export principal.
+    Aucun fichier n'est créé par cette fonction.
+    """
+
+    # 2. Vérification des colonnes indispensables
+    require_columns(
+        universe,
+        ["id", "name", "sector"],
+        "Universe"
+    )
+    require_columns(
+        controversies,
+        ["issuer_id", "event_date"],
+        "Controversies"
+    )
+
+    # 3. Nettoyage et dédoublonnage des entreprises
+    # deduplicate appelle déjà normalize_ids.
+    universe, removed = deduplicate(universe)
+
+    # 4. Nettoyage des identifiants et dates des controverses
+    controversies = normalize_ids(controversies, "issuer_id")
+    controversies = normalize_dates(controversies)
+
+    # 5. Vérification des correspondances entre les deux tables
+    unknown = set(controversies["issuer_id"]) - set(universe["id"])
+
+    if unknown:
+        raise ValueError(
+            f"Controversies : identifiants inconnus : {sorted(unknown)}"
+        )
+
+    # 6. Normalisation des données de l'univers
+    universe = clean_universe(universe)
+
+    return universe, removed, controversies
+
+
+
+#%% Export du DataFrame normalisé
+
+def export_data(df, filename="data_normalized.xlsx", data_dir=DATA_DIR):
+    """Enregistre le DataFrame dans Data et renvoie le chemin du fichier.
+
+    Un export existant de même nom est remplacé.
+    Les pd.NA sont exportés comme cellules vides (EXCLUDED non évalué).
+    """
+    filename = Path(filename)
+    if filename.name != str(filename) or filename.suffix.lower() != ".xlsx":
+        raise ValueError("Fournir un nom de fichier .xlsx sans dossier.")
+
+    data_dir = Path(data_dir)
+    path = data_dir / filename
+    if path.resolve() == (data_dir / "data_base.xlsx").resolve():
+        raise ValueError("L'export ne doit pas écraser data_base.xlsx.")
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+    df.to_excel(
+        path,
+        sheet_name="Universe_normalized",
+        index=False,
+        engine="openpyxl",
+    )
+    return path
+
+
+#%% Exécution
+
+
+universe, controversies = load_data()
+df, removed, controversies = prepare_data(universe, controversies)
+output_path = export_data(df)
+
+print(f"DataFrame normalisé : {len(df)} entreprises, {len(df.columns)} colonnes")
+print(f"Doublons retirés : {len(removed)}")
+print(f"Fichier enregistré : {output_path}")
+
+# %%
