@@ -1470,20 +1470,24 @@ if __name__ == '__main__':
 # les décisions d'achat ou de vente, ainsi que les raisons de sélection ou de rejet des entreprises.
 def compare_allocations(d, metrics, p):
 
-    c = d.copy(); 
-    c['delta_weight'] = c.weight_date2 - c.weight_date1
-    new = c.weight_date2 > 1e-7
-    old = c.weight_date1 > 1e-7
-    c['decision'] = np.select([old & ~new, ~old & new, old & new & c.delta_weight.gt(1e-7), old & new & c.delta_weight.lt(-1e-7), old & new], ['Vendre', 'Acheter', 'Renforcer', 'Réduire', 'Conserver'], default='Hors portefeuille')
-    c['trade_eur_m'] = c.delta_weight * p['aum_eur_m']
-    c['amount_date2_eur_m'] = c.weight_date2 * p['aum_eur_m']
-    c['delta_benchmark'] = c.weight_date2 - c.benchmark_weight
-    c['contribution_ecart_rendement_benchmark'] = c.delta_benchmark * c.return_12m_pct
-    c['contribution_ecart_rendement_date1'] = c.delta_weight * c.return_12m_pct
+    c = pd.DataFrame(index=d.index)
 
-    # Ici, on calcule la contribution de chaque entreprise au rendement final par rapport au benchmark, en multipliant la variation de poids par le rendement rétrospectif.
-    rb = metrics.loc['Benchmark', 'historical_return_pct']
-    c['change_vs_benchmark_pp'] = c.delta_weight * (c.return_12m_pct-rb)
+    # Identifiants pour reconnaître chaque entreprise
+    for col in ('id', 'isin', 'name'):
+        if col in d.columns:
+            c[col] = d[col]
+
+    c['delta_weight'] = d.weight_date2 - d.weight_date1
+    c['trade_eur_m'] = c.delta_weight * p['aum_eur_m']
+    c['amount_date2_eur_m'] = d.weight_date2 * p['aum_eur_m']
+    c['delta_benchmark'] = d.weight_date2 - d.benchmark_weight
+
+    c['contribution_ecart_rendement_benchmark'] = (
+        c.delta_benchmark * d.return_12m_pct
+    )
+    c['contribution_ecart_rendement_date1'] = (
+        c.delta_weight * d.return_12m_pct
+    )
 
     return c
 
@@ -1747,8 +1751,32 @@ def plot_extrapolated_evolutions(
         show
     )
 
+from pathlib import Path
+import pandas as pd
 
 
+def export_results_excel(results, file_path, index=False):
+    """Exporte les résultats vers un fichier Excel."""
+    file_path = Path(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    results.to_excel(file_path, index=index, sheet_name="Resultats")
+    print(f"Fichier créé : {file_path}")
+
+
+if __name__ == '__main__':
+    metrics_results = metrics
+    allocations_results = comparison
+
+    export_results_excel(
+        metrics_results,
+        "Results/portfolio_metrics.xlsx",
+        index=True
+    )
+
+    export_results_excel(
+        allocations_results,
+        "Results/compare_allocations.xlsx"
+    )
 
 if __name__ == '__main__':
     plot_extrapolated_evolutions(
@@ -1764,6 +1792,8 @@ if __name__ == '__main__':
         output=output_dir,
         scenario='Tendance prolongée'
     )
+
+
 
 
 
