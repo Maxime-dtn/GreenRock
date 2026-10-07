@@ -1471,20 +1471,36 @@ if __name__ == '__main__':
 # les décisions d'achat ou de vente, ainsi que les raisons de sélection ou de rejet des entreprises.
 def compare_allocations(d, metrics, p):
 
-    c = d.copy(); 
-    c['delta_weight'] = c.weight_date2 - c.weight_date1
-    new = c.weight_date2 > 1e-7
-    old = c.weight_date1 > 1e-7
-    c['decision'] = np.select([old & ~new, ~old & new, old & new & c.delta_weight.gt(1e-7), old & new & c.delta_weight.lt(-1e-7), old & new], ['Vendre', 'Acheter', 'Renforcer', 'Réduire', 'Conserver'], default='Hors portefeuille')
-    c['trade_eur_m'] = c.delta_weight * p['aum_eur_m']
-    c['amount_date2_eur_m'] = c.weight_date2 * p['aum_eur_m']
-    c['delta_benchmark'] = c.weight_date2 - c.benchmark_weight
-    c['contribution_ecart_rendement_benchmark'] = c.delta_benchmark * c.return_12m_pct
-    c['contribution_ecart_rendement_date1'] = c.delta_weight * c.return_12m_pct
+    c = pd.DataFrame(index=d.index)
+
+    columns = [
+        'id', 'name',
+        'sector', 'country', 'region',
+        'core',
+        'benchmark_weight', 'weight_date1', 'weight_date2',
+        'return_12m_pct'
+    ]
+
+    for col in columns:
+        c[col] = d[col]
+
+    c['amount_date2_eur_m'] = c['weight_date2'] * p['aum_eur_m']
+    c['delta_benchmark'] = c['weight_date2'] - c['benchmark_weight']
+    c['delta_weight'] = c['weight_date2'] - c['weight_date1']
+    c['trade_eur_m'] = c['delta_weight'] * p['aum_eur_m']
+
+    c['contribution_ecart_rendement_benchmark'] = (
+        c['delta_benchmark'] * c['return_12m_pct']
+    )
+    c['contribution_ecart_rendement_date1'] = (
+        c['delta_weight'] * c['return_12m_pct']
+    )
 
     # Ici, on calcule la contribution de chaque entreprise au rendement final par rapport au benchmark, en multipliant la variation de poids par le rendement rétrospectif.
     rb = metrics.loc['Benchmark', 'historical_return_pct']
-    c['change_vs_benchmark_pp'] = c.delta_weight * (c.return_12m_pct-rb)
+    c['change_vs_benchmark_pp'] = (
+        c['delta_weight'] * (c['return_12m_pct'] - rb)
+    )
 
     return c
 
@@ -1879,6 +1895,31 @@ if __name__ == '__main__':
         candidates.to_excel(
             writer, sheet_name="Audit_candidats", index=False
         )
+
+
+if __name__ == "__main__":
+    # Créer le dossier Green_Investment à côté du fichier Python.
+    export_dir = Path(__file__).resolve().parent / "Green_Investment"
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    # Exporter le résultat de portfolio_metrics.
+    metrics.to_excel(
+        export_dir / "portfolio_metrics.xlsx",
+        sheet_name="Indicateurs",
+        index=True,
+        index_label="allocation",
+        engine="openpyxl"
+    )
+
+    # Exporter le résultat de compare_allocations.
+    comparison.to_excel(
+        export_dir / "compare_allocations.xlsx",
+        sheet_name="Comparaison",
+        index=False,
+        engine="openpyxl"
+    )
+
+    print(f"Fichiers Excel enregistrés dans : {export_dir}")
 
 if __name__ == '__main__':
     print("Export terminé :", excel_path.resolve())
