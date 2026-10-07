@@ -170,7 +170,6 @@ def normalize_dates(df, column="event_date", date_format="%Y-%m-%d"):
         format=date_format,
         errors="raise"
     )
-
     return out
 
 #%% Vérifie que toutes les colonnes sont présente 
@@ -205,7 +204,6 @@ def normalize_ids(df, column="id"):
             f"Identifiant manquant dans {column!r} "
             f"aux index : {out.index[missing].tolist()}"
         )
-
     return out
 
 ## Suppression des doublons
@@ -222,10 +220,10 @@ def deduplicate(df, id_column="id"):
     out = normalize_ids(df, column=id_column)
 
     # 1. Retirer uniquement les lignes entièrement identiques.
-    exact_duplicates = out.duplicated(keep="first")
+    exact_duplicates = df.duplicated(keep="first")
 
-    removed = out.loc[exact_duplicates].copy()
-    cleaned = out.loc[~exact_duplicates].copy()
+    removed = df.loc[exact_duplicates].copy()
+    cleaned = df.loc[~exact_duplicates].copy()
 
     # 2. Vérifier l'unicité de l'identifiant d'entreprise.
     conflicts = cleaned[id_column].duplicated(keep=False)
@@ -261,10 +259,10 @@ def clean_universe(df):
 
     required = ["benchmark_weight_pct", "return_12m_pct", "carbon_intensity_s12_t_per_meur_revenue", "scope1_mt", "scope2_mt", "revenue_eur_bn"]
     require_columns(df, required, "Universe")
-    require_columns(df, ["id", "name", "sector"], "Universe")
+    require_columns(df, ["id", "name", "sector", "country", "region", "sub_industry"], "Universe")
     out = pd.DataFrame(index=df.index)
     out["id"] = normalize_ids(df, "id")["id"]
-    for column in ["name", "sector"]:
+    for column in ["name", "sector", "country", "region", "sub_industry"]:
         out[column] = df[column].map(_clean_text).astype("string")
     numeric = {}
 
@@ -333,7 +331,6 @@ def prepare_data(universe, controversies):
     )
 
     # 3. Nettoyage et dédoublonnage des entreprises
-    # deduplicate appelle déjà normalize_ids.
     universe, removed = deduplicate(universe)
 
     # 4. Nettoyage des identifiants et dates des controverses
@@ -351,7 +348,7 @@ def prepare_data(universe, controversies):
     # 6. Normalisation des données de l'univers
     universe = clean_universe(universe)
 
-    return universe, removed, controversies
+    return universe.sort_values('id'), removed, controversies.sort_values('issuer_id')
 
 
 
@@ -392,5 +389,3 @@ output_path = export_data(df)
 print(f"DataFrame normalisé : {len(df)} entreprises, {len(df.columns)} colonnes")
 print(f"Doublons retirés : {len(removed)}")
 print(f"Fichier enregistré : {output_path}")
-
-# %%
