@@ -37,7 +37,7 @@ PARAMETRES = {
     'fund': 'GreenInvestment',
     'carbon_start_offset': None,  # None : toutes les années simulées ; 0 : Date 2 et futur seulement. 
     'n_positions': 30,
-    'min_weight': .02, 
+    'min_weight': .01, 
     'max_weight': .1,
     'max_sector': .25,                          # Pas plus de 25 % du portefeuille dans un même secteur
     'max_country': .40,                         # Pas plus de 40 % du portefeuille dans un même pays
@@ -647,10 +647,9 @@ if __name__ == '__main__':
 
 
 
-# Cette fonction calcule la WACI maximale autorisée pour le portefeuille.
+# Cette fonction calcule la WACI maximale autorisée pour ton portefeuille.
 # On compare trois limites : la moitié de la WACI du benchmark, la trajectoire de réduction annuelle par rapport à une base fixe, et la WACI de l’année précédente.
 # Puis on contraint notre portefeuille à respecter la limite la plus exigeante
-
 def prepare_carbon_panel(d, p, projection_panel=None, scenario='Tendance prolongée'):
     """Valide les données annuelles et la couverture complète du benchmark."""
     if d.empty or d.id.isna().any() or d.id.duplicated().any():
@@ -878,6 +877,11 @@ def carbon_limit(
 
     return limits_by_year
 
+# Maintenant, on cherche la meilleur combinaison possible d'entreprise 
+# compatible avec la WACI, la diversification, la taxonomie et le cœur climatique.
+# Il s'agit d'une optimisation linéaire mixte en nombres entiers (MILP) : 
+# On possèdes des variables entières binaires (pour la sélection des entreprises) et des variables continues (pour les poids des entreprises).
+# On maximise la somme des scores pondérés par les poids des entreprises, tout en respectant les contraintes de poids minimum et maximum, ainsi que les contraintes de diversification imposées par les variables binaires et continues.
 
 if __name__ == '__main__':
     carbon_limits = carbon_limit(
@@ -892,12 +896,6 @@ if __name__ == '__main__':
 
 
 #%% 
-
-# Maintenant, on cherche la meilleur combinaison possible d'entreprise 
-# compatible avec la WACI, la diversification, la taxonomie et le cœur climatique.
-# Il s'agit d'une optimisation linéaire mixte en nombres entiers (MILP) : 
-# On possèdes des variables entières binaires (pour la sélection des entreprises) et des variables continues (pour les poids des entreprises).
-# On maximise la somme des scores pondérés par les poids des entreprises, tout en respectant les contraintes de poids minimum et maximum, ainsi que les contraintes de diversification imposées par les variables binaires et continues.
 
 def optimize_portfolio(d, p, projection_panel=None, scenario='Tendance prolongée'):
 
@@ -1098,9 +1096,8 @@ def optimize_portfolio(d, p, projection_panel=None, scenario='Tendance prolongé
 
 # On vérifie ensuite que le portefeuille final respecte bien toutes les contraintes imposées.
     
-# Fonction permettant de vérier qu'une contrainte est respectée. 
-# Elle prend en entrée le nom de la contrainte, la valeur calculée, ainsi que les bornes inférieure et supérieure.
-
+    # Fonction permettant de vérier qu'une contrainte est respectée. 
+    # Elle prend en entrée le nom de la contrainte, la valeur calculée, ainsi que les bornes inférieure et supérieure.
 def audit_constraints(
     d,
     p,
@@ -1191,6 +1188,10 @@ def audit_constraints(
         0,
         0
     )
+
+    # ==========================================================
+    # Contrôles WACI
+    # ==========================================================
 
     if projection_panel is None:
 
@@ -1470,24 +1471,20 @@ if __name__ == '__main__':
 # les décisions d'achat ou de vente, ainsi que les raisons de sélection ou de rejet des entreprises.
 def compare_allocations(d, metrics, p):
 
-    c = pd.DataFrame(index=d.index)
-
-    # Identifiants pour reconnaître chaque entreprise
-    for col in ('id', 'isin', 'name'):
-        if col in d.columns:
-            c[col] = d[col]
-
-    c['delta_weight'] = d.weight_date2 - d.weight_date1
+    c = d.copy(); 
+    c['delta_weight'] = c.weight_date2 - c.weight_date1
+    new = c.weight_date2 > 1e-7
+    old = c.weight_date1 > 1e-7
+    c['decision'] = np.select([old & ~new, ~old & new, old & new & c.delta_weight.gt(1e-7), old & new & c.delta_weight.lt(-1e-7), old & new], ['Vendre', 'Acheter', 'Renforcer', 'Réduire', 'Conserver'], default='Hors portefeuille')
     c['trade_eur_m'] = c.delta_weight * p['aum_eur_m']
-    c['amount_date2_eur_m'] = d.weight_date2 * p['aum_eur_m']
-    c['delta_benchmark'] = d.weight_date2 - d.benchmark_weight
+    c['amount_date2_eur_m'] = c.weight_date2 * p['aum_eur_m']
+    c['delta_benchmark'] = c.weight_date2 - c.benchmark_weight
+    c['contribution_ecart_rendement_benchmark'] = c.delta_benchmark * c.return_12m_pct
+    c['contribution_ecart_rendement_date1'] = c.delta_weight * c.return_12m_pct
 
-    c['contribution_ecart_rendement_benchmark'] = (
-        c.delta_benchmark * d.return_12m_pct
-    )
-    c['contribution_ecart_rendement_date1'] = (
-        c.delta_weight * d.return_12m_pct
-    )
+    # Ici, on calcule la contribution de chaque entreprise au rendement final par rapport au benchmark, en multipliant la variation de poids par le rendement rétrospectif.
+    rb = metrics.loc['Benchmark', 'historical_return_pct']
+    c['change_vs_benchmark_pp'] = c.delta_weight * (c.return_12m_pct-rb)
 
     return c
 
@@ -1570,6 +1567,27 @@ def plot_extrapolated_evolutions(
     ids=None,
     show=False
 ):
+    """
+    Trace l'évolution du CA, du scope 1 et du scope 2.
+
+    Parameters
+    ----------
+    panel : DataFrame
+        Résultat de extrapolate_company_data().
+
+    output : str ou Path
+        Dossier dans lequel enregistrer la figure.
+
+    scenario : str
+        Scénario utilisé pour le graphique.
+
+    ids : list, optional
+        Liste d'identifiants à afficher.
+        Si None, on trace la moyenne de toutes les entreprises.
+
+    show : bool
+        Affiche la figure si True.
+    """
 
     required = {
         'id',
@@ -1751,32 +1769,8 @@ def plot_extrapolated_evolutions(
         show
     )
 
-from pathlib import Path
-import pandas as pd
 
 
-def export_results_excel(results, file_path, index=False):
-    """Exporte les résultats vers un fichier Excel."""
-    file_path = Path(file_path)
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-    results.to_excel(file_path, index=index, sheet_name="Resultats")
-    print(f"Fichier créé : {file_path}")
-
-
-if __name__ == '__main__':
-    metrics_results = metrics
-    allocations_results = comparison
-
-    export_results_excel(
-        metrics_results,
-        "Results/portfolio_metrics.xlsx",
-        index=True
-    )
-
-    export_results_excel(
-        allocations_results,
-        "Results/compare_allocations.xlsx"
-    )
 
 if __name__ == '__main__':
     plot_extrapolated_evolutions(
@@ -1792,8 +1786,6 @@ if __name__ == '__main__':
         output=output_dir,
         scenario='Tendance prolongée'
     )
-
-
 
 
 
